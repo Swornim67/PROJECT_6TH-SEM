@@ -1,4 +1,4 @@
-# MoneyTrack — Income & Expense Record Keeping System
+# Income and Expense Record Keeping System
 
 A Django application based on the supplied entity-relationship diagram. It provides secure user accounts, user-owned income/expense categories, transaction records, monthly category budgets, and financial reports.
 
