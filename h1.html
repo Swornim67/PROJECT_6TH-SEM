@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+ <head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260824-01-d7c0b2f","C":{"Abril Fatface":"YACgEZbkUVE,0","Alfa Slab One":"YACgEYS9sJU,0","Anton":"YACgEcYqQ-A,0","Archivo":"YAHO2-t-jNE,0","Arial":"YAGyDvJ_4Ts,0","Bebas Neue":"YACgESME5ew,0","Bricolage Grotesque":"YAFyMcdwzpc,0","Canva Sans":"YAFLd8sKbwc,2","Caveat":"YALBs2ploWQ,0","Comic Sans MS":"YAHO2VMiyZo,0","Cormorant Garamond":"YAFdJhX-538,0","Courier New":"YAGzXiGs0_8,0","DM Sans":"YAD1aU3sLnI,0","DM Serif Display":"YAD1aYG82rc,0","Forum":"YACgEcnnqB4,0","Fraunces":"YAEul-FRQw4,0","Georgia":"YAGzXkO0pEM,0","Helvetica Neue":"YAFcf6CtJfI,0","Impact":"YAFcfnjI7Vk,0","Inter":"YAFdJvSyp_k,3","Iowan Old Style":"YAGNIFa8j9o,0","Jacques Francois":"YAHO2a5g66Q,0","JetBrains Mono":"YAFdJksXcAk,0","Libre Baskerville":"YACgEUFdPdA,0","Manrope":"YAHO2b2feC4,0","Merriweather":"YACgEXvHxxs,0","Montserrat":"YADLjI9qxTA,0","Nunito":"YACgEX8C5Gg,0","Oleo Script":"YACgEQQ14jI,0","Phantom Sans":"YAHO2E8Pb88,0","Playfair Display":"YACgEYmuCJE,0","Poppins":"YAFdJjbTu24,1","Press Start 2P":"YAFyGr-8pmQ,0","Quicksand":"YADWjpfPmdk,0","Raleway":"YACgEVg3xZg,0","Segoe UI":"YAHNdRD1Klw,0","Source Sans 3":"YAG4lO1Mj10,0","Spectral":"YAHO2rVUHIM,0","Times New Roman":"YAGzXW3gftg,0","Times":"YAGzXW3gftg,0","Ubuntu":"YACgERDU--Q,0","Work Sans":"YAGXhLOKv44,0","Yellowtail":"YACgEYG4kG4,0","ui-monospace":"YADlN8CFZ8Q,0","ui-sans-serif":"YACkoN-xg4g,0"}}');</script><script src="/_sdk/50d846425a1e5082.telemetry_sdk.js" integrity="sha512-Otbex+ztlVbcEGql0rXGd/3E3ee/hqAntg6DeuUEMG6pIPbXGOSvZbFZVzknAXi1tH/itQ+ijEhOTr2aWj6CXg=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Income and Expense Record Keeper</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/b3bf9e8ac58e6ad6.data_sdk.js" integrity="sha512-otc1u9NYq9Ms5Jt//7vmhrrqR5CLPr8Jdgs6741gqniClfLMcfmC+jK/cKuQdhLv6G0esJ/FzaMS9tv0T/vj/Q=="></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Fraunces:opsz,wght@9..144,600;9..144,700&amp;display=swap" rel="stylesheet">
+  <style>
+    :root { --ink: #102A43; --mint: #21B289; --coral: #E5665A; --paper: #F6F4EF; --sand: #E9E2D4; }
+    * { box-sizing: border-box; }
+    body { font-family: "DM Sans", sans-serif; color: var(--ink); }
+    .display-font { font-family: "Fraunces", serif; }
+    .app-shell { width: 100%; min-height: calc(100 * min(var(--vh, 1vh), 1vh)); background: #F6F4EF; }
+    .ledger-grid { background-image: linear-gradient(rgba(16,42,67,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(16,42,67,.04) 1px, transparent 1px); background-size: 30px 30px; }
+    .field { width: 100%; border: 1px solid #D8D2C7; border-radius: .75rem; padding: .7rem .8rem; background: #fffdfa; color: #102A43; outline: none; }
+    .field:focus { border-color: #21B289; box-shadow: 0 0 0 3px rgba(33,178,137,.16); }
+    .action-btn { transition: transform .18s ease, box-shadow .18s ease; }
+    .action-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(16,42,67,.12); }
+    .record-row + .record-row { border-top: 1px solid #E9E2D4; }
+    .budget-bar { transition: width .45s ease; }
+    .reveal { animation: rise .5s both; }
+    @keyframes rise { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+  </style>
+  <script src="/_sdk/a27879be4562f807.resizing_sdk.js" type="text/javascript" integrity="sha512-trcxRwz+QLrzK0Dqg95xqVRryR7WtWui2YopXyzOIr3WMde3j/xCRgT63/b/EAg7klDsAOuHzoRgoryhwm8QFw=="></script>
+ </head>
+ <body data-template-id="__page-root">
+  <div class="app-shell ledger-grid">
+   <header data-template-id="top-header" class="canva-header bg-[#102A43] text-white">
+    <div class="w-full max-w-7xl mx-auto px-5 py-5 flex flex-wrap items-center justify-between gap-4">
+     <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-[#21B289] rounded-xl grid place-items-center" aria-hidden="true">
+       <i data-lucide="wallet-cards" class="w-5 h-5"></i>
+      </div>
+      <div>
+       <p data-template-id="brand-kicker" class="canva-text text-xs tracking-[.18em] uppercase text-[#B9E8D9]"></p>
+       <h1 data-template-id="page-title" class="canva-text display-font font-bold"></h1>
+      </div>
+     </div>
+     <p data-template-id="header-note" class="canva-text text-sm text-[#D8E5EC]"></p>
+    </div>
+   </header>
+   <main class="w-full max-w-7xl mx-auto px-5 py-7">
+    <section aria-labelledby="overview-heading" class="reveal">
+     <div class="flex flex-wrap justify-between items-end gap-3 mb-4">
+      <div>
+       <p data-template-id="overview-eyebrow" class="canva-text text-sm font-semibold text-[#21B289] uppercase tracking-wider"></p>
+       <h2 id="overview-heading" data-template-id="overview-title" class="canva-text display-font font-bold mt-1"></h2>
+      </div>
+      <p id="record-count" class="text-sm text-[#526B7A]" aria-live="polite">0 records</p>
+     </div>
+     <div class="summary-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+      <article data-template-id="income-summary" class="canva-card bg-[#E4F5EE] rounded-2xl p-5 border border-[#B9E8D9]">
+       <div class="flex justify-between">
+        <p data-template-id="income-summary-label" class="canva-text font-semibold"></p><i data-lucide="arrow-down-left" class="w-5 h-5 text-[#168666]"></i>
+       </div>
+       <p id="income-total" class="display-font text-3xl font-bold mt-3">NPR 0.00</p>
+      </article>
+      <article data-template-id="expense-summary" class="canva-card bg-[#FCEBE7] rounded-2xl p-5 border border-[#F5C4BC]">
+       <div class="flex justify-between">
+        <p data-template-id="expense-summary-label" class="canva-text font-semibold"></p><i data-lucide="arrow-up-right" class="w-5 h-5 text-[#C85147]"></i>
+       </div>
+       <p id="expense-total" class="display-font text-3xl font-bold mt-3">NPR 0.00</p>
+      </article>
+      <article data-template-id="balance-summary" class="canva-card bg-[#FFFDF8] rounded-2xl p-5 border border-[#D8D2C7]">
+       <div class="flex justify-between">
+        <p data-template-id="balance-summary-label" class="canva-text font-semibold"></p><i data-lucide="scale" class="w-5 h-5 text-[#102A43]"></i>
+       </div>
+       <p id="balance-total" class="display-font text-3xl font-bold mt-3">NPR 0.00</p>
+      </article>
+     </div>
+    </section>
+    <p id="status-message" class="hidden mt-5 rounded-xl px-4 py-3 text-sm font-medium" role="status" aria-live="polite"></p>
+    <section class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-7">
+     <div class="lg:col-span-2 space-y-6">
+      <section data-template-id="transaction-panel" class="canva-panel bg-white rounded-2xl p-5 shadow-sm border border-[#E9E2D4] reveal">
+       <div class="flex items-center gap-3 mb-5"><span class="w-9 h-9 rounded-lg bg-[#102A43] text-white grid place-items-center"><i data-lucide="plus" class="w-5 h-5"></i></span>
+        <div>
+         <h2 data-template-id="transaction-form-title" class="canva-text font-bold"></h2>
+         <p data-template-id="transaction-form-help" class="canva-text text-sm text-[#526B7A]"></p>
+        </div>
+       </div>
+       <form id="transaction-form" class="space-y-4"><input id="transaction-id" type="hidden">
+        <div><label data-template-id="type-label" class="canva-text block text-sm font-semibold mb-1" for="type"></label> <select id="type" class="field" required><option value="Expense">Expense</option><option value="Income">Income</option></select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+         <div>
+          <label data-template-id="amount-label" class="canva-text block text-sm font-semibold mb-1" for="amount"></label><input id="amount" class="field" type="number" min="0.01" step="0.01" required>
+         </div>
+         <div>
+          <label data-template-id="currency-label" class="canva-text block text-sm font-semibold mb-1" for="currency"></label><select id="currency" class="field"><option value="NPR">NPR</option><option value="USD">USD</option><option value="INR">INR</option></select>
+         </div>
+        </div>
+        <div>
+         <label data-template-id="category-label" class="canva-text block text-sm font-semibold mb-1" for="category"></label><input id="category" class="field" list="category-options" required><datalist id="category-options"><option value="Salary"></option><option value="Freelance"></option><option value="Food"></option><option value="Transport"></option><option value="Housing"></option><option value="Utilities"></option><option value="Health"></option><option value="Education"></option></datalist>
+        </div>
+        <div>
+         <label data-template-id="date-label" class="canva-text block text-sm font-semibold mb-1" for="date"></label><input id="date" class="field" type="date" required>
+        </div>
+        <div>
+         <label data-template-id="payment-label" class="canva-text block text-sm font-semibold mb-1" for="payment-method"></label><select id="payment-method" class="field"><option value="Cash">Cash</option><option value="Card">Card</option><option value="Bank transfer">Bank transfer</option><option value="Mobile wallet">Mobile wallet</option></select>
+        </div>
+        <div>
+         <label data-template-id="description-label" class="canva-text block text-sm font-semibold mb-1" for="description"></label><input id="description" class="field" type="text">
+        </div><button id="transaction-submit" data-template-id="transaction-submit" class="canva-button action-btn w-full bg-[#102A43] text-white rounded-xl py-3 font-bold" type="submit"></button> <button id="transaction-cancel" data-template-id="transaction-cancel" class="canva-button hidden w-full bg-[#E9E2D4] text-[#102A43] rounded-xl py-3 font-bold" type="button"></button>
+       </form>
+      </section>
+      <section data-template-id="budget-form-panel" class="canva-panel bg-[#FFFDF8] rounded-2xl p-5 border border-[#D8D2C7] reveal">
+       <div class="flex items-center gap-3 mb-5">
+        <span class="w-9 h-9 rounded-lg bg-[#E5AD43] text-[#102A43] grid place-items-center"><i data-lucide="piggy-bank" class="w-5 h-5"></i></span>
+        <h2 data-template-id="budget-form-title" class="canva-text font-bold"></h2>
+       </div>
+       <form id="budget-form" class="grid grid-cols-1 sm:grid-cols-2 gap-3"><input id="budget-id" type="hidden">
+        <div>
+         <label data-template-id="budget-category-label" class="canva-text block text-sm font-semibold mb-1" for="budget-category"></label><input id="budget-category" class="field" list="category-options" required>
+        </div>
+        <div>
+         <label data-template-id="budget-limit-label" class="canva-text block text-sm font-semibold mb-1" for="budget-limit"></label><input id="budget-limit" class="field" type="number" min="0.01" step="0.01" required>
+        </div>
+        <div>
+         <label data-template-id="budget-month-label" class="canva-text block text-sm font-semibold mb-1" for="budget-month"></label><input id="budget-month" class="field" type="month" required>
+        </div>
+        <div>
+         <label data-template-id="budget-period-label" class="canva-text block text-sm font-semibold mb-1" for="budget-period"></label><select id="budget-period" class="field"><option value="Monthly">Monthly</option></select>
+        </div>
+        <div class="sm:col-span-2">
+         <button id="budget-submit" data-template-id="budget-submit" class="canva-button action-btn w-full bg-[#E5AD43] text-[#102A43] rounded-xl py-3 font-bold" type="submit"></button>
+        </div>
+        <div class="sm:col-span-2">
+         <button id="budget-cancel" data-template-id="budget-cancel" class="canva-button hidden w-full bg-[#E9E2D4] text-[#102A43] rounded-xl py-3 font-bold" type="button"></button>
+        </div>
+       </form>
+      </section>
+     </div>
+     <div class="lg:col-span-3 space-y-6">
+      <section data-template-id="records-panel" class="canva-panel bg-white rounded-2xl shadow-sm border border-[#E9E2D4] overflow-hidden reveal">
+       <div class="p-5 border-b border-[#E9E2D4]">
+        <div class="flex flex-wrap justify-between gap-4 items-center">
+         <div>
+          <h2 data-template-id="records-title" class="canva-text font-bold"></h2>
+          <p data-template-id="records-help" class="canva-text text-sm text-[#526B7A] mt-1"></p>
+         </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+         <div>
+          <label data-template-id="filter-type-label" class="canva-text sr-only" for="filter-type"></label><select id="filter-type" class="field"><option value="">All types</option><option value="Income">Income</option><option value="Expense">Expense</option></select>
+         </div>
+         <div>
+          <label data-template-id="filter-category-label" class="canva-text sr-only" for="filter-category"></label><input id="filter-category" class="field" placeholder="Filter category">
+         </div>
+         <div>
+          <label data-template-id="filter-month-label" class="canva-text sr-only" for="filter-month"></label><input id="filter-month" class="field" type="month">
+         </div>
+        </div>
+       </div>
+       <div id="transaction-list"></div>
+       <p id="transactions-empty" data-template-id="transactions-empty" class="canva-text text-center py-10 text-[#526B7A]"></p>
+      </section>
+      <section data-template-id="budgets-panel" class="canva-panel bg-[#102A43] rounded-2xl p-5 text-white reveal">
+       <div class="flex items-center justify-between gap-3">
+        <div>
+         <h2 data-template-id="budgets-title" class="canva-text font-bold"></h2>
+         <p data-template-id="budgets-help" class="canva-text text-sm text-[#B9CBD5] mt-1"></p>
+        </div><i data-lucide="chart-no-axes-combined" class="w-6 h-6 text-[#E5AD43]"></i>
+       </div>
+       <div id="budget-list" class="mt-5 space-y-3"></div>
+       <p id="budgets-empty" data-template-id="budgets-empty" class="canva-text text-sm text-[#B9CBD5] py-4"></p>
+      </section>
+     </div>
+    </section>
+   </main>
+   <footer class="w-full max-w-7xl mx-auto px-5 pb-7">
+    <p data-template-id="footer-note" class="canva-text text-xs text-[#526B7A] text-center"></p>
+   </footer>
+  </div>
+  <template id="transaction-template">
+   <article data-template-id="transaction-row" class="canva-card record-row p-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3 min-w-0"><span class="record-icon w-9 h-9 rounded-full grid place-items-center shrink-0"></span>
+     <div class="min-w-0">
+      <p class="record-description font-semibold truncate"></p>
+      <p class="record-meta text-sm text-[#526B7A]"></p>
+     </div>
+    </div>
+    <div class="flex items-center gap-3">
+     <p class="record-amount font-bold whitespace-nowrap"></p><button type="button" class="edit-record p-2 rounded-lg hover:bg-[#E9E2D4]" aria-label="Edit record"><i data-lucide="pencil" class="w-4 h-4"></i></button><button type="button" class="delete-record p-2 rounded-lg hover:bg-[#FCEBE7] text-[#C85147]" aria-label="Delete record"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+    </div>
+   </article>
+  </template>
+  <template id="budget-template">
+   <article data-template-id="budget-card" class="canva-card rounded-xl bg-[#173B56] p-4">
+    <div class="flex items-center justify-between gap-3">
+     <div>
+      <p class="budget-category font-bold"></p>
+      <p class="budget-month text-xs text-[#B9CBD5] mt-1"></p>
+     </div>
+     <div class="flex gap-1">
+      <button type="button" class="edit-budget p-1.5 text-[#B9CBD5] hover:text-white" aria-label="Edit budget"><i data-lucide="pencil" class="w-4 h-4"></i></button><button type="button" class="delete-budget p-1.5 text-[#F5A69F] hover:text-white" aria-label="Delete budget"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+     </div>
+    </div>
+    <div class="flex justify-between mt-4 text-sm">
+     <span class="budget-spent"></span><span class="budget-limit"></span>
+    </div>
+    <div class="w-full h-2 bg-[#0C2335] rounded-full mt-2 overflow-hidden">
+     <div class="budget-bar h-full rounded-full"></div>
+    </div>
+    <p class="budget-status text-xs mt-2"></p>
+   </article>
+  </template>
+  <script src="/_sdk/489148d8756906ef.editing_sdk.js" integrity="sha512-hxxSbMNp1t+UEu3j/dIQUU4MJnmsCo0Gs3iQVVS706vrCJ3Yt2+ySOlfJEaPyiyQVLjZRmn1dNVqg6M40VZZHQ=="></script>
+  <script>
+    let records = [], pendingDeleteId = null;
+    const $ = id => document.getElementById(id);
+    const money = (n, currency = "NPR") => new Intl.NumberFormat("en-NP", { style:"currency", currency, maximumFractionDigits:2 }).format(Number(n || 0));
+
+    function setStatus(message, kind = "success") {
+      const el = $("status-message"); el.textContent = message; el.className = "mt-5 rounded-xl px-4 py-3 text-sm font-medium " + (kind === "error" ? "bg-[#FCEBE7] text-[#A33C34]" : "bg-[#E4F5EE] text-[#116C53]");
+    }
+    function currentTransactions() { return records.filter(r => r.type === "Income" || r.type === "Expense"); }
+    function updateSummary() {
+      const tx = currentTransactions(), income = tx.filter(r=>r.type==="Income").reduce((s,r)=>s+Number(r.amount),0), expense = tx.filter(r=>r.type==="Expense").reduce((s,r)=>s+Number(r.amount),0);
+      $("income-total").textContent = money(income); $("expense-total").textContent = money(expense); $("balance-total").textContent = money(income-expense); $("record-count").textContent = records.length + (records.length === 1 ? " record" : " records");
+    }
+    function renderTransactions() {
+      const list = $("transaction-list"), type = $("filter-type").value, cat = $("filter-category").value.trim().toLowerCase(), month = $("filter-month").value;
+      const shown = currentTransactions().filter(r => (!type || r.type === type) && (!cat || r.category.toLowerCase().includes(cat)) && (!month || r.date.startsWith(month))).sort((a,b)=>b.date.localeCompare(a.date));
+      list.innerHTML = ""; $("transactions-empty").classList.toggle("hidden", shown.length !== 0);
+      shown.forEach(r => {
+        const node = $("transaction-template").content.cloneNode(true), el = node.querySelector("article");
+        el.dataset.id = r.__backendId; const icon = node.querySelector(".record-icon"); icon.innerHTML = r.type === "Income" ? '<i data-lucide="arrow-down-left" class="w-4 h-4"></i>' : '<i data-lucide="arrow-up-right" class="w-4 h-4"></i>'; icon.className += r.type === "Income" ? " bg-[#E4F5EE] text-[#168666]" : " bg-[#FCEBE7] text-[#C85147]";
+        node.querySelector(".record-description").textContent = r.description || r.category;
+        node.querySelector(".record-meta").textContent = r.category + " · " + r.date + (r.type === "Expense" ? " · " + r.payment_method : "");
+        const amount = node.querySelector(".record-amount"); amount.textContent = (r.type === "Income" ? "+" : "−") + money(r.amount, r.currency); amount.className += r.type === "Income" ? " text-[#168666]" : " text-[#C85147]";
+        node.querySelector(".edit-record").onclick = () => editTransaction(r);
+        node.querySelector(".delete-record").onclick = () => requestDelete(r);
+        list.appendChild(node);
+      }); lucide.createIcons();
+    }
+    function renderBudgets() {
+      const budgets = records.filter(r=>r.type==="Budget"), list = $("budget-list"); list.innerHTML = ""; $("budgets-empty").classList.toggle("hidden", budgets.length !== 0);
+      budgets.forEach(b => {
+        const node = $("budget-template").content.cloneNode(true), el = node.querySelector("article"), spend = currentTransactions().filter(r=>r.type==="Expense" && r.category===b.category && r.date.startsWith(b.date)).reduce((s,r)=>s+Number(r.amount),0), limit = Number(b.budget_limit), ratio = limit ? Math.min(spend/limit*100,100) : 0;
+        el.dataset.id=b.__backendId; node.querySelector(".budget-category").textContent=b.category; node.querySelector(".budget-month").textContent=b.date + " · " + b.period; node.querySelector(".budget-spent").textContent="Spent " + money(spend); node.querySelector(".budget-limit").textContent="Limit " + money(limit);
+        const bar=node.querySelector(".budget-bar"); bar.style.width=ratio+"%"; bar.style.background=spend>limit?"#E5665A":ratio>=80?"#E5AD43":"#21B289";
+        const status=node.querySelector(".budget-status"); status.textContent=spend>limit ? money(spend-limit)+" over budget" : ratio>=80 ? money(limit-spend)+" remaining — approaching limit" : money(limit-spend)+" remaining"; status.className += spend>limit?" text-[#F5A69F]":ratio>=80?" text-[#F3D28D]":" text-[#B9E8D9]";
+        node.querySelector(".edit-budget").onclick=()=>editBudget(b); node.querySelector(".delete-budget").onclick=()=>requestDelete(b); list.appendChild(node);
+      }); lucide.createIcons();
+    }
+    function render() { updateSummary(); renderTransactions(); renderBudgets(); }
+    function editTransaction(r) { $("transaction-id").value=r.__backendId; $("type").value=r.type; $("amount").value=r.amount; $("currency").value=r.currency; $("category").value=r.category; $("date").value=r.date; $("payment-method").value=r.payment_method; $("description").value=r.description; $("transaction-submit").textContent="Save transaction changes"; $("transaction-cancel").classList.remove("hidden"); $("transaction-panel").scrollIntoView({behavior:"smooth"}); }
+    function editBudget(r) { $("budget-id").value=r.__backendId; $("budget-category").value=r.category; $("budget-limit").value=r.budget_limit; $("budget-month").value=r.date; $("budget-period").value=r.period; $("budget-submit").textContent="Save budget changes"; $("budget-cancel").classList.remove("hidden"); $("budget-form-panel").scrollIntoView({behavior:"smooth"}); }
+    function resetTransaction() { $("transaction-form").reset(); $("transaction-id").value=""; $("transaction-submit").textContent="Save transaction"; $("transaction-cancel").classList.add("hidden"); }
+    function resetBudget() { $("budget-form").reset(); $("budget-id").value=""; $("budget-submit").textContent="Create budget"; $("budget-cancel").classList.add("hidden"); }
+    async function requestDelete(record) {
+      if (pendingDeleteId === record.__backendId) { const res=await window.dataSdk.delete(record); pendingDeleteId=null; setStatus(res.isOk ? "Record deleted." : "Could not delete this record.", res.isOk?"success":"error"); return; }
+      pendingDeleteId=record.__backendId; setStatus("Click the same delete button again to permanently delete this record.", "error");
+    }
+    async function saveRecord(record, id, button) {
+      button.disabled=true; const res=id ? await window.dataSdk.update({...record,__backendId:id}) : await window.dataSdk.create(record); button.disabled=false;
+      if (res.isOk) { setStatus(id ? "Changes saved." : "Record saved to your sheet."); return true; } setStatus("We could not save that record. Please try again.", "error"); return false;
+    }
+    $("transaction-form").addEventListener("submit", async e => { e.preventDefault(); const id=$("transaction-id").value, amount=Number($("amount").value); if (!(amount>0)) return setStatus("Enter an amount greater than zero.", "error"); const ok=await saveRecord({type:$("type").value,amount,currency:$("currency").value,category:$("category").value.trim(),date:$("date").value,description:$("description").value.trim(),payment_method:$("payment-method").value,budget_limit:0,period:"",created_at:new Date().toISOString()},id,$("transaction-submit")); if(ok) resetTransaction(); });
+    $("budget-form").addEventListener("submit", async e => { e.preventDefault(); const id=$("budget-id").value, limit=Number($("budget-limit").value); if (!(limit>0)) return setStatus("Enter a budget limit greater than zero.", "error"); const ok=await saveRecord({type:"Budget",amount:0,currency:"NPR",category:$("budget-category").value.trim(),date:$("budget-month").value,description:"",payment_method:"",budget_limit:limit,period:$("budget-period").value,created_at:new Date().toISOString()},id,$("budget-submit")); if(ok) resetBudget(); });
+    $("transaction-cancel").onclick=resetTransaction; $("budget-cancel").onclick=resetBudget;
+    ["filter-type","filter-category","filter-month"].forEach(id => $(id).addEventListener("input",renderTransactions));
+    const handler={onDataChanged(data){records=data; render();}};
+    (async()=>{ $("date").value=new Date().toISOString().slice(0,10); $("budget-month").value=new Date().toISOString().slice(0,7); const result=await window.dataSdk.init(handler); if(!result.isOk)setStatus("Your records could not be loaded right now.","error"); })();
+    lucide.createIcons();
+  </script>
+ </body>
+</html>

@@ -1,0 +1,10 @@
+# Local configuration and database files
+.env
+db.sqlite3
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Django-collected static files
+staticfiles/
