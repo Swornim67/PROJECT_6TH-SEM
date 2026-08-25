@@ -1,6 +1,164 @@
 {% extends 'ledger/base.html' %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3"><h1 class="mb-0">Financial reports</h1><div><a href="{% url 'export_excel' %}" class="btn btn-success">Download Excel</a> <a href="{% url 'export_pdf' %}" class="btn btn-danger">Download PDF</a></div></div>
-<div class="row g-3 mb-4"><div class="col-md-4"><div class="card"><div class="card-body"><small>Total income</small><h3 class="text-success">NPR {{ income_total }}</h3></div></div></div><div class="col-md-4"><div class="card"><div class="card-body"><small>Total expenses</small><h3 class="text-danger">NPR {{ expense_total }}</h3></div></div></div><div class="col-md-4"><div class="card"><div class="card-body"><small>Net balance</small><h3>NPR {{ balance }}</h3></div></div></div></div>
-<div class="row g-4"><div class="col-md-6"><div class="card"><div class="card-header">Expenses by category</div><ul class="list-group list-group-flush">{% for row in by_category %}<li class="list-group-item d-flex justify-content-between">{{ row.category__name }} <strong>NPR {{ row.total }}</strong></li>{% empty %}<li class="list-group-item text-muted">No expenses recorded.</li>{% endfor %}</ul></div></div><div class="col-md-6"><div class="card"><div class="card-header">Monthly comparison</div><div class="card-body"><h6>Income</h6>{% for row in monthly_income %}<p>{{ row.month|date:'M Y' }} <span class="float-end text-success">NPR {{ row.total }}</span></p>{% empty %}<p class="text-muted">No income data.</p>{% endfor %}<h6 class="mt-4">Expenses</h6>{% for row in monthly_expense %}<p>{{ row.month|date:'M Y' }} <span class="float-end text-danger">NPR {{ row.total }}</span></p>{% empty %}<p class="text-muted">No expense data.</p>{% endfor %}</div></div></div></div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <h1 class="mb-0">
+        Financial reports
+    </h1>
+
+    <div>
+        <a href="{% url 'export_excel' %}" class="btn btn-success">
+            Download Excel
+        </a>
+
+        <a href="{% url 'export_pdf' %}" class="btn btn-danger">
+            Download PDF
+        </a>
+    </div>
+
+</div>
+
+
+<!-- Financial Summary -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <small>Total income</small>
+                <h3 class="text-success">
+                    NPR {{ income_total }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <small>Total expenses</small>
+                <h3 class="text-danger">
+                    NPR {{ expense_total }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <small>Net balance</small>
+                <h3>
+                    NPR {{ balance }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Reports -->
+<div class="row g-4">
+
+    <!-- Expenses by Category -->
+    <div class="col-md-6">
+
+        <div class="card">
+
+            <div class="card-header">
+                Expenses by category
+            </div>
+
+            <ul class="list-group list-group-flush">
+
+                {% for row in by_category %}
+
+                    <li class="list-group-item d-flex justify-content-between">
+                        {{ row.category__name }}
+
+                        <strong>
+                            NPR {{ row.total }}
+                        </strong>
+                    </li>
+
+                {% empty %}
+
+                    <li class="list-group-item text-muted">
+                        No expenses recorded.
+                    </li>
+
+                {% endfor %}
+
+            </ul>
+
+        </div>
+
+    </div>
+
+
+    <!-- Monthly Comparison -->
+    <div class="col-md-6">
+
+        <div class="card">
+
+            <div class="card-header">
+                Monthly comparison
+            </div>
+
+            <div class="card-body">
+
+                <h6>Income</h6>
+
+                {% for row in monthly_income %}
+
+                    <p>
+                        {{ row.month|date:'M Y' }}
+
+                        <span class="float-end text-success">
+                            NPR {{ row.total }}
+                        </span>
+                    </p>
+
+                {% empty %}
+
+                    <p class="text-muted">
+                        No income data.
+                    </p>
+
+                {% endfor %}
+
+
+                <h6 class="mt-4">
+                    Expenses
+                </h6>
+
+                {% for row in monthly_expense %}
+
+                    <p>
+                        {{ row.month|date:'M Y' }}
+
+                        <span class="float-end text-danger">
+                            NPR {{ row.total }}
+                        </span>
+                    </p>
+
+                {% empty %}
+
+                    <p class="text-muted">
+                        No expense data.
+                    </p>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 {% endblock %}

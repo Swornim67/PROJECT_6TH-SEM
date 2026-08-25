@@ -9,7 +9,6 @@
     <div class="card">
         <div class="card-body">
 
-            <!-- Category Warning -->
             {% if form.category and not form.category.field.queryset.exists %}
                 <div class="alert alert-warning">
                     You need a matching category first.
@@ -19,8 +18,6 @@
                 </div>
             {% endif %}
 
-
-            <!-- Form -->
             <form method="post">
                 {% csrf_token %}
 
@@ -49,9 +46,6 @@
                     </div>
 
                 {% endfor %}
-
-
-                <!-- Form Actions -->
                 <button type="submit" class="btn btn-primary">
                     Save {{ title }}
                 </button>
