@@ -1,1 +1,73 @@
-{% extends 'ledger/base.html' %}{% block content %}<div class="col-lg-7 mx-auto"><h1>{{ title }}</h1><div class="card"><div class="card-body">{% if form.category and not form.category.field.queryset.exists %}<div class="alert alert-warning">You need a matching category first. <a href="{% url 'categories' %}">Create one in Categories</a>.</div>{% endif %}<form method="post">{% csrf_token %}{% for field in form %}<div class="mb-3"><label class="form-label">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>{% endfor %}<button class="btn btn-primary">Save {{ title }}</button> <a href="javascript:history.back()" class="btn btn-light">Cancel</a></form></div></div></div>{% endblock %}
+{% extends 'ledger/base.html' %}
+
+{% block content %}
+
+<div class="col-lg-7 mx-auto">
+
+    <h1>{{ title }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+
+            <!-- Category Warning -->
+            {% if form.category and not form.category.field.queryset.exists %}
+                <div class="alert alert-warning">
+                    You need a matching category first.
+                    <a href="{% url 'categories' %}">
+                        Create one in Categories
+                    </a>.
+                </div>
+            {% endif %}
+
+
+            <!-- Form -->
+            <form method="post">
+                {% csrf_token %}
+
+                {% for field in form %}
+
+                    <div class="mb-3">
+
+                        <label class="form-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                        </label>
+
+                        {{ field }}
+
+                        {% if field.help_text %}
+                            <div class="form-text">
+                                {{ field.help_text }}
+                            </div>
+                        {% endif %}
+
+                        {% for error in field.errors %}
+                            <div class="text-danger small">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+                {% endfor %}
+
+
+                <!-- Form Actions -->
+                <button type="submit" class="btn btn-primary">
+                    Save {{ title }}
+                </button>
+
+                <a
+                    href="javascript:history.back()"
+                    class="btn btn-light"
+                >
+                    Cancel
+                </a>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
