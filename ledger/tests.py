@@ -255,21 +255,25 @@ class LedgerWorkflowTests(TestCase):
 
         self.client.post(reverse("categories"), {"name": "Entertainment", "type": "expense"})
         entertainment = Category.objects.get(user=user, name="Entertainment")
+        zero_budget = self.client.post(reverse("budgets"), {
+            "category": entertainment.pk, "month": month, "amount_limit": "0.00",
+        })
+        self.assertRedirects(zero_budget, reverse("budgets"))
+        self.assertContains(self.client.get(reverse("budgets")), "No allocation")
+
+        self.client.post(reverse("categories"), {"name": "Leisure", "type": "expense"})
+        leisure = Category.objects.get(user=user, name="Leisure")
+        invalid_negative = self.client.post(reverse("budgets"), {
+            "category": leisure.pk, "month": month, "amount_limit": "-1.00",
+        })
+        self.assertContains(invalid_negative, "Budget cannot be negative")
+
         over_allocation = self.client.post(reverse("budgets"), {
-            "category": entertainment.pk,
+            "category": leisure.pk,
             "month": month,
             "amount_limit": "18000.00",
         })
         self.assertContains(over_allocation, "Budget exceeds available income")
-
-        invalid_zero = self.client.post(reverse("budgets"), {
-            "category": entertainment.pk, "month": month, "amount_limit": "0.00",
-        })
-        self.assertContains(invalid_zero, "greater than or equal to 0.01")
-        invalid_negative = self.client.post(reverse("budgets"), {
-            "category": entertainment.pk, "month": month, "amount_limit": "-1.00",
-        })
-        self.assertContains(invalid_negative, "greater than or equal to 0.01")
 
         warning = self.client.post(reverse("expense_create"), {
             "category": food.pk, "amount": "6500.00", "currency": "NPR",

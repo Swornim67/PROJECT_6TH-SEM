@@ -29,11 +29,11 @@ def category_spending(user, category, month):
 def budget_progress(budget):
     spent = category_spending(budget.user, budget.category, budget.month)
     remaining = budget.amount_limit - spent
-    percent = min(int((spent / budget.amount_limit) * 100), 100)
+    percent = min(int((spent / budget.amount_limit) * 100), 100) if budget.amount_limit else (100 if spent else 0)
     if spent > budget.amount_limit:
-        status = "Overspending"
+        status = "Exceeded"
     elif spent == budget.amount_limit:
-        status = "Budget used"
+        status = "No allocation" if budget.amount_limit == 0 else "Budget used"
     elif spent >= budget.amount_limit * Decimal("0.80"):
         status = "Warning: 80% used"
     else:
@@ -49,7 +49,7 @@ def expense_budget_alert(expense):
     if not budget:
         return None
     spent, remaining, _, status = budget_progress(budget)
-    if status == "Overspending":
+    if status == "Exceeded":
         return f"You have exceeded your {budget.category.name} budget by Rs. {abs(remaining):,.2f}."
     if status == "Budget used":
         return f"Your {budget.category.name} budget limit has been reached."
@@ -63,7 +63,7 @@ def exceeded_categories(user, month):
     rows = []
     for budget in Budget.objects.filter(user=user, month=month).select_related("category"):
         spent, remaining, _, status = budget_progress(budget)
-        if status == "Overspending":
+        if status == "Exceeded":
             rows.append({
                 "category": budget.category.name,
                 "budget": budget.amount_limit,

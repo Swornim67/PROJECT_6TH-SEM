@@ -125,10 +125,10 @@ class Budget(models.Model):
         max_digits=12,
         decimal_places=2,
         validators=[
-            MinValueValidator(Decimal("0.01")),
+            MinValueValidator(Decimal("0.00"), message="Budget cannot be negative."),
             MaxValueValidator(MAX_LIMIT),
         ],
-        help_text="Enter an amount from Rs 0.01 to Rs 21,00,000.",
+        help_text="Enter an amount from Rs 0 to Rs 21,00,000. Zero means no allocation.",
     )
     class Meta:
         ordering = ["-month"]

@@ -67,7 +67,7 @@
 
                     <div class="progress mt-2">
                         <div
-                            class="progress-bar {% if status == 'Overspending' %}bg-danger{% elif status == 'Warning: 80% used' %}bg-warning{% endif %}"
+                            class="progress-bar {% if status == 'Exceeded' %}bg-danger{% elif status == 'Warning: 80% used' %}bg-warning{% endif %}"
                             style="width: {{ percent }}%;"
                         >
                             {{ percent }}%
