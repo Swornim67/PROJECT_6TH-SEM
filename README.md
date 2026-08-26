@@ -29,7 +29,19 @@ python3 manage.py createsuperuser
 python3 manage.py runserver
 ```
 
-The MySQL connection is enabled automatically when `MYSQL_DATABASE` is set. Django’s built-in admin is available at `/admin/`.
+The MySQL connection is enabled automatically when `MYSQL_DATABASE` is set.
+
+## Verified administrator access
+
+The `/admin/` area requires both an administrator password and a private, per-admin verification code. Normal users cannot create or promote themselves to an administrator.
+
+Create a verified administrator from a trusted terminal after migrating:
+
+```bash
+python3 manage.py create_verified_admin admin admin@example.com
+```
+
+The command securely prompts for a password, generates a verification code, and displays it once. Store that code in a password manager; it is required every time that administrator signs in at `/admin/`. To replace a lost code, run the command again for the same username.
 
 ## Data model
 

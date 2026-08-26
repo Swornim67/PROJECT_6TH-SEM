@@ -2,17 +2,19 @@
 
 {% block content %}
 
-<div class="card col-md-6 mx-auto">
+<div class="card delete-card col-md-6 mx-auto">
     <div class="card-body">
 
-        <h2>Delete record?</h2>
+        <div class="delete-icon">!</div>
+        <span class="eyebrow">Permanent action</span>
+        <h2>Delete this record?</h2>
 
         <p>
             This will permanently delete
             <strong>{{ item }}</strong>.
         </p>
 
-        <form method="post">
+        <form method="post" class="form-actions">
             {% csrf_token %}
 
             <button type="submit" class="btn btn-danger">

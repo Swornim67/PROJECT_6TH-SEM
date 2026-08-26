@@ -1,15 +1,19 @@
 {% extends 'ledger/base.html' %}
 
 {% block content %}
-<div class="d-flex justify-content-between mb-3">
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
 
-    <h1>{{ kind }}</h1>
+    <div>
+        <span class="eyebrow">Your records</span>
+        <h1>{{ kind }}</h1>
+        <p class="text-muted mb-0">Track, update, and organize your {{ kind|lower }} entries.</p>
+    </div>
 
     <a
         href="{% url create_url %}"
         class="btn btn-primary"
     >
-        Add {{ kind }}
+        <span aria-hidden="true">+</span> Add {{ kind }}
     </a>
 
 </div>
@@ -36,38 +40,38 @@
                     <tr>
 
                         
-                        <td>
+                        <td class="transaction-date">
                             {{ item.date }}
                         </td>
 
 
                         
                         <td>
-                            {{ item.category.name }}
+                            <span class="category-pill">{{ item.category.name }}</span>
                         </td>
 
-                        <td>
+                        <td class="transaction-description">
                             {{ item.description|default:'—' }}
                         </td>
 
 
                         
-                        <td>
+                        <td class="transaction-amount">
                             {{ item.currency }} {{ item.amount }}
                         </td>
 
 
                         
-                        <td class="text-end">
+                        <td class="text-end transaction-actions">
 
-                            <a
+                            <a aria-label="Edit {{ kind|lower }} record"
                                 href="{% url edit_url item.pk %}"
                                 class="btn btn-sm btn-outline-primary"
                             >
                                 Edit
                             </a>
 
-                            <a
+                            <a aria-label="Delete {{ kind|lower }} record"
                                 href="{% url delete_url item.pk %}"
                                 class="btn btn-sm btn-outline-danger"
                             >
@@ -81,11 +85,12 @@
                 {% empty %}
 
                     <tr>
-                        <td
-                            colspan="5"
-                            class="text-center text-muted py-4"
-                        >
-                            No {{ kind|lower }} records found.
+                        <td colspan="5">
+                            <div class="empty-state table-empty-state">
+                                <span class="empty-state-icon">⌁</span>
+                                <strong>No {{ kind|lower }} records yet</strong>
+                                <p>Start by adding your first {{ kind|lower }} entry.</p>
+                            </div>
                         </td>
                     </tr>
 

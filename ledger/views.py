@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from .forms import BudgetForm, CategoryForm, ExpenseForm, IncomeForm, RegisterForm
+from .forms import BudgetForm, CategoryForm, ExpenseForm, IncomeForm, RegisterForm, ReportFilterForm
 from .models import Budget, Category, Expense, Income
 
 def register(request):
@@ -86,10 +86,17 @@ def budgets(request):
         rows.append((budget, spent, min(int((spent / budget.amount_limit) * 100), 100)))
     return render(request, "ledger/budgets.html", {"form": form, "rows": rows})
 
-def report_data(user):
+def report_data(user, start_date=None, end_date=None):
     expenses = Expense.objects.filter(user=user)
     income = Income.objects.filter(user=user)
-    context = {"income_total": income.aggregate(total=Sum("amount"))["total"] or 0, "expense_total": expenses.aggregate(total=Sum("amount"))["total"] or 0,
+    if start_date:
+        expenses = expenses.filter(date__gte=start_date)
+        income = income.filter(date__gte=start_date)
+    if end_date:
+        expenses = expenses.filter(date__lte=end_date)
+        income = income.filter(date__lte=end_date)
+    context = {"start_date": start_date, "end_date": end_date,
+               "income_total": income.aggregate(total=Sum("amount"))["total"] or 0, "expense_total": expenses.aggregate(total=Sum("amount"))["total"] or 0,
                "by_category": expenses.values("category__name").annotate(total=Sum("amount")).order_by("-total"),
                "monthly_income": income.annotate(month=TruncMonth("date")).values("month").annotate(total=Sum("amount")).order_by("month"),
                "monthly_expense": expenses.annotate(month=TruncMonth("date")).values("month").annotate(total=Sum("amount")).order_by("month")}
@@ -98,13 +105,26 @@ def report_data(user):
 
 @login_required
 def reports(request):
-    return render(request, "ledger/reports.html", report_data(request.user))
+    filter_form = ReportFilterForm(request.GET)
+    context = report_data(request.user, **filter_form.cleaned_data) if filter_form.is_valid() else report_data(request.user)
+    context["filter_form"] = filter_form
+    return render(request, "ledger/reports.html", context)
+
+
+def validated_report_data(request):
+    filter_form = ReportFilterForm(request.GET)
+    if not filter_form.is_valid():
+        return None, HttpResponse("Invalid report date range.", status=400)
+    return report_data(request.user, **filter_form.cleaned_data), None
 
 @login_required
 def export_excel(request):
     from openpyxl import Workbook
     from openpyxl.styles import Font
-    data = report_data(request.user); workbook = Workbook(); summary = workbook.active; summary.title = "Summary"
+    data, error_response = validated_report_data(request)
+    if error_response:
+        return error_response
+    workbook = Workbook(); summary = workbook.active; summary.title = "Summary"
     summary.append(["MoneyTrack Financial Report"]); summary["A1"].font = Font(bold=True, size=16)
     summary.append([]); summary.append(["Metric", "Amount (NPR)"])
     for cell in summary[3]: cell.font = Font(bold=True)
@@ -114,8 +134,16 @@ def export_excel(request):
     for row in data["by_category"]: categories.append([row["category__name"], row["total"]])
     transactions = workbook.create_sheet("Transactions"); transactions.append(["Type", "Date", "Category", "Amount", "Currency", "Description", "Payment method"])
     for cell in transactions[1]: cell.font = Font(bold=True)
-    for item in Income.objects.filter(user=request.user).select_related("category"): transactions.append(["Income", item.date, item.category.name, item.amount, item.currency, item.description, ""])
-    for item in Expense.objects.filter(user=request.user).select_related("category"): transactions.append(["Expense", item.date, item.category.name, item.amount, item.currency, item.description, item.get_payment_method_display()])
+    income_items = Income.objects.filter(user=request.user).select_related("category")
+    expense_items = Expense.objects.filter(user=request.user).select_related("category")
+    if request.GET.get("start_date"):
+        income_items = income_items.filter(date__gte=data["start_date"])
+        expense_items = expense_items.filter(date__gte=data["start_date"])
+    if request.GET.get("end_date"):
+        income_items = income_items.filter(date__lte=data["end_date"])
+        expense_items = expense_items.filter(date__lte=data["end_date"])
+    for item in income_items: transactions.append(["Income", item.date, item.category.name, item.amount, item.currency, item.description, ""])
+    for item in expense_items: transactions.append(["Expense", item.date, item.category.name, item.amount, item.currency, item.description, item.get_payment_method_display()])
     for sheet in workbook.worksheets:
         sheet.freeze_panes = "A2"
         for column in sheet.columns: sheet.column_dimensions[column[0].column_letter].width = min(max(len(str(cell.value or "")) for cell in column) + 2, 40)
@@ -129,7 +157,10 @@ def export_pdf(request):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.platypus import SimpleDocTemplate, Spacer, Paragraph, Table, TableStyle
-    data = report_data(request.user); response = HttpResponse(content_type="application/pdf"); response["Content-Disposition"] = 'attachment; filename="moneytrack-report.pdf"'
+    data, error_response = validated_report_data(request)
+    if error_response:
+        return error_response
+    response = HttpResponse(content_type="application/pdf"); response["Content-Disposition"] = 'attachment; filename="moneytrack-report.pdf"'
     styles = getSampleStyleSheet(); story = [Paragraph("MoneyTrack Financial Report", styles["Title"]), Spacer(1, 14)]
     tables = [("Summary", [["Metric", "Amount (NPR)"], ["Total income", str(data["income_total"])], ["Total expenses", str(data["expense_total"])], ["Net balance", str(data["balance"])]]), ("Expenses by category", [["Expense category", "Amount (NPR)"]] + [[row["category__name"], str(row["total"])] for row in data["by_category"]])]
     for heading, rows in tables:

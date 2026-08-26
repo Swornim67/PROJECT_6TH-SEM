@@ -3,16 +3,17 @@
 {% block content %}
 
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
 
     <div>
-        <h1>Dashboard</h1>
+        <span class="eyebrow">Overview</span>
+        <h1>Good to see you, {{ user.first_name|default:user.username }}.</h1>
         <p class="text-muted mb-0">
             This month at a glance
         </p>
     </div>
 
-    <div>
+    <div class="action-group">
         <a
             class="btn btn-success"
             href="{% url 'income_create' %}"
@@ -36,7 +37,7 @@
 
     
     <div class="col-md-4">
-        <div class="card stat-card border-success">
+        <div class="card stat-card income-stat">
             <div class="card-body">
                 <small>Monthly income</small>
                 <h3>NPR {{ income }}</h3>
@@ -47,7 +48,7 @@
 
     
     <div class="col-md-4">
-        <div class="card stat-card border-danger">
+        <div class="card stat-card expense-stat">
             <div class="card-body">
                 <small>Monthly expenses</small>
                 <h3>NPR {{ expense }}</h3>
@@ -58,7 +59,7 @@
 
    
     <div class="col-md-4">
-        <div class="card stat-card border-primary">
+        <div class="card stat-card balance-stat">
             <div class="card-body">
                 <small>Monthly balance</small>
                 <h3>NPR {{ balance }}</h3>
@@ -70,31 +71,37 @@
 
 
 
-<div class="card">
+<div class="card activity-card">
 
     <div class="card-header">
-        Recent activity
+        <span>Recent activity</span>
+        <a href="{% url 'reports' %}">View reports →</a>
     </div>
 
     <div class="card-body">
 
         {% for item in recent %}
 
-            <div class="border-bottom py-2">
-                {{ item.date }}
-                ·
-                {{ item.category }}
-
-                <span class="float-end">
-                    NPR {{ item.amount }}
+            <div class="activity-row">
+                <div class="activity-icon {% if item.category.type == 'income' %}income-icon{% else %}expense-icon{% endif %}">
+                    {% if item.category.type == 'income' %}↗{% else %}↙{% endif %}
+                </div>
+                <div>
+                    <strong>{{ item.category.name }}</strong>
+                    <small>{{ item.description|default:'No description' }} · {{ item.date|date:'M j, Y' }}</small>
+                </div>
+                <span class="activity-amount {% if item.category.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                    {% if item.category.type == 'income' %}+{% else %}−{% endif %} NPR {{ item.amount }}
                 </span>
             </div>
 
         {% empty %}
 
-            <p class="text-muted mb-0">
-                No records yet. Add your first income or expense.
-            </p>
+            <div class="empty-state">
+                <span class="empty-state-icon">⌁</span>
+                <strong>No activity yet</strong>
+                <p>Add your first income or expense to see it here.</p>
+            </div>
 
         {% endfor %}
 

@@ -1,7 +1,71 @@
+from datetime import timedelta
+
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
+from django.utils import timezone
+
+phone_number_validator = RegexValidator(
+    regex=r"^\+?[1-9]\d{6,14}$",
+    message="Enter a valid phone number with 7 to 15 digits, optionally starting with +.",
+)
+currency_validator = RegexValidator(
+    regex=r"^[A-Z]{3}$",
+    message="Use a three-letter uppercase currency code, for example NPR.",
+)
+
+
+class UserProfile(models.Model):
+    """Additional account details that are not available on Django's built-in user."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    phone_number = models.CharField(max_length=16, unique=True, null=True, blank=True, validators=[phone_number_validator])
+
+    def __str__(self):
+        return self.user.username
+
+
+class AdminVerification(models.Model):
+    """A second, private credential required for access to the admin site."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_verification",
+    )
+    verification_code_hash = models.CharField(max_length=128)
+    is_verified = models.BooleanField(default=False)
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_verified_at = models.DateTimeField(null=True, blank=True)
+
+    def set_verification_code(self, verification_code):
+        self.verification_code_hash = make_password(verification_code)
+
+    def check_verification_code(self, verification_code):
+        return check_password(verification_code, self.verification_code_hash)
+
+    def is_locked(self):
+        return bool(self.locked_until and self.locked_until > timezone.now())
+
+    def register_failed_attempt(self):
+        self.failed_attempts += 1
+        if self.failed_attempts >= 5:
+            self.locked_until = timezone.now() + timedelta(minutes=15)
+            self.failed_attempts = 0
+        self.save(update_fields=["failed_attempts", "locked_until"])
+
+    def register_successful_verification(self):
+        self.failed_attempts = 0
+        self.locked_until = None
+        self.last_verified_at = timezone.now()
+        self.save(update_fields=["failed_attempts", "locked_until", "last_verified_at"])
+
+    def __str__(self):
+        return f"Admin verification for {self.user.username}"
 
 class Category(models.Model):
     INCOME, EXPENSE = "income", "expense"
@@ -19,18 +83,32 @@ class TransactionBase(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0.01)])
-    currency = models.CharField(max_length=3, default="NPR")
+    currency = models.CharField(max_length=3, default="NPR", validators=[currency_validator])
     description = models.TextField(blank=True)
     date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    category_type = None
+
+    def clean(self):
+        errors = {}
+        if self.category_id and self.user_id and self.category.user_id != self.user_id:
+            errors["category"] = "The category must belong to your account."
+        if self.category_id and self.category_type and self.category.type != self.category_type:
+            errors["category"] = f"Select an {self.category_type} category for this transaction."
+        if errors:
+            raise ValidationError(errors)
+
     class Meta: abstract = True; ordering = ["-date", "-created_at"]
 
 class Income(TransactionBase):
+    category_type = Category.INCOME
     class Meta: ordering = ["-date", "-created_at"]
     def __str__(self): return f"Income: {self.amount}"
 
 class Expense(TransactionBase):
+    category_type = Category.EXPENSE
     PAYMENT_CHOICES = [("cash", "Cash"), ("card", "Card"), ("bank", "Bank transfer"), ("mobile", "Mobile wallet"), ("other", "Other")]
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default="cash")
     class Meta: ordering = ["-date", "-created_at"]
@@ -45,6 +123,17 @@ class Budget(models.Model):
         ordering = ["-month"]
         constraints = [models.UniqueConstraint(fields=["user", "category", "month"], name="unique_monthly_budget")]
     def __str__(self): return f"{self.category} — {self.month:%b %Y}"
+
+    def clean(self):
+        errors = {}
+        if self.category_id and self.user_id and self.category.user_id != self.user_id:
+            errors["category"] = "The category must belong to your account."
+        if self.category_id and self.category.type != Category.EXPENSE:
+            errors["category"] = "Budgets can only be set for expense categories."
+        if self.month and self.month.day != 1:
+            errors["month"] = "Use the first day of the budget month."
+        if errors:
+            raise ValidationError(errors)
 
 
 class Account(models.Model):
