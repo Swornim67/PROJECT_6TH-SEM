@@ -1,9 +1,10 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 
@@ -115,10 +116,20 @@ class Expense(TransactionBase):
     def __str__(self): return f"Expense: {self.amount}"
 
 class Budget(models.Model):
+    MAX_LIMIT = Decimal("2100000.00")
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, limit_choices_to={"type": "expense"})
     month = models.DateField(help_text="Use the first day of the budget month.")
-    amount_limit = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0.01)])
+    amount_limit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(Decimal("0.01")),
+            MaxValueValidator(MAX_LIMIT),
+        ],
+        help_text="Enter an amount from Rs 0.01 to Rs 21,00,000.",
+    )
     class Meta:
         ordering = ["-month"]
         constraints = [models.UniqueConstraint(fields=["user", "category", "month"], name="unique_monthly_budget")]

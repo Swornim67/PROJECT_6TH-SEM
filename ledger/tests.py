@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from .models import AdminVerification, Budget, Category, Expense, Income
+from .views import report_data
 
 class LedgerWorkflowTests(TestCase):
     def register(self):
@@ -161,6 +162,59 @@ class LedgerWorkflowTests(TestCase):
         invalid_password = self.client.post(reverse("register"), {"username": "sam", "first_name": "Sam", "email": "sam@example.com", "phone_number": "+9779812345679", "password1": "short", "password2": "short"})
         self.assertContains(invalid_password, "This password is too short")
 
+    def test_registration_requires_a_valid_com_email_domain(self):
+        invalid_domain = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "Sam", "email": "sam@example.org",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(invalid_domain, "valid .com email address")
+
+        invalid_local_part = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "Sam", "email": ".sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(invalid_local_part, "valid .com email address")
+
+        repeated_com = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "Sam", "email": "sam@example.com.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(repeated_com, "valid .com email address")
+
+        valid_com = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "Sam", "email": "sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertRedirects(valid_com, reverse("dashboard"))
+
+    def test_registration_validates_username_and_full_name(self):
+        self.register()
+        self.client.logout()
+
+        numeric_username = self.client.post(reverse("register"), {
+            "username": "1alex", "first_name": "Sam", "email": "sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(numeric_username, "username cannot start with a number")
+
+        numeric_full_name = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "1Sam", "email": "sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(numeric_full_name, "full name cannot start with a number")
+
+        duplicate_username = self.client.post(reverse("register"), {
+            "username": "ALEX", "first_name": "Sam", "email": "sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(duplicate_username, "username already exists")
+
+        duplicate_full_name = self.client.post(reverse("register"), {
+            "username": "sam", "first_name": "alex", "email": "sam@example.com",
+            "phone_number": "+9779812345679", "password1": "strong-pass-123", "password2": "strong-pass-123",
+        })
+        self.assertContains(duplicate_full_name, "full name already exists")
+
     def test_form_and_report_date_range_validation(self):
         self.register(); user = User.objects.get(username="alex")
         income_category = Category.objects.get(user=user, name="Salary")
@@ -172,3 +226,87 @@ class LedgerWorkflowTests(TestCase):
         self.assertContains(invalid_report, "end date must be on or after")
         invalid_export = self.client.get(reverse("export_excel"), {"start_date": "2026-12-01", "end_date": "2026-01-01"})
         self.assertEqual(invalid_export.status_code, 400)
+
+    def test_budget_allocation_limits_warnings_and_expense_threshold_report(self):
+        self.register()
+        user = User.objects.get(username="alex")
+        food = Category.objects.get(user=user, name="Food")
+        transport = Category.objects.get(user=user, name="Transport")
+        bills = Category.objects.get(user=user, name="Bills")
+        other_expenses = Category.objects.get(user=user, name="Other expenses")
+        month = date.today().replace(day=1)
+        Income.objects.create(
+            user=user, category=Category.objects.get(user=user, name="Salary"),
+            amount="50000.00", date=date.today(),
+        )
+
+        for category, amount_limit in [
+            (food, "8000.00"),
+            (transport, "5000.00"),
+            (bills, "10000.00"),
+            (other_expenses, "10000.00"),
+        ]:
+            response = self.client.post(reverse("budgets"), {
+                "category": category.pk,
+                "month": month,
+                "amount_limit": amount_limit,
+            })
+            self.assertRedirects(response, reverse("budgets"))
+
+        self.client.post(reverse("categories"), {"name": "Entertainment", "type": "expense"})
+        entertainment = Category.objects.get(user=user, name="Entertainment")
+        over_allocation = self.client.post(reverse("budgets"), {
+            "category": entertainment.pk,
+            "month": month,
+            "amount_limit": "18000.00",
+        })
+        self.assertContains(over_allocation, "Budget exceeds available income")
+
+        invalid_zero = self.client.post(reverse("budgets"), {
+            "category": entertainment.pk, "month": month, "amount_limit": "0.00",
+        })
+        self.assertContains(invalid_zero, "greater than or equal to 0.01")
+        invalid_negative = self.client.post(reverse("budgets"), {
+            "category": entertainment.pk, "month": month, "amount_limit": "-1.00",
+        })
+        self.assertContains(invalid_negative, "greater than or equal to 0.01")
+
+        warning = self.client.post(reverse("expense_create"), {
+            "category": food.pk, "amount": "6500.00", "currency": "NPR",
+            "payment_method": "cash", "date": date.today(),
+        }, follow=True)
+        self.assertContains(warning, "Warning: you have used 81%")
+        used = self.client.post(reverse("expense_create"), {
+            "category": food.pk, "amount": "1500.00", "currency": "NPR",
+            "payment_method": "cash", "date": date.today(),
+        }, follow=True)
+        self.assertContains(used, "budget limit has been reached")
+        overspent = self.client.post(reverse("expense_create"), {
+            "category": food.pk, "amount": "500.00", "currency": "NPR",
+            "payment_method": "cash", "date": date.today(),
+        }, follow=True)
+        self.assertContains(overspent, "exceeded your Food budget by Rs. 500.00")
+
+        exceeded_report = self.client.get(reverse("reports"), {"budget_month": month})
+        self.assertContains(exceeded_report, "Exceeded categories")
+        self.assertContains(exceeded_report, "Exceeded by NPR 500.00")
+        exceeded = report_data(user, budget_month=month)["exceeded_categories"]
+        self.assertEqual(exceeded, [{"category": "Food", "budget": Budget.objects.get(user=user, category=food, month=month).amount_limit, "spent": 8500, "exceeded_by": 500}])
+
+        Expense.objects.create(user=user, category=transport, amount="1000.00", date=date.today())
+        report = self.client.get(reverse("reports"), {"expense_threshold": "1000.00"})
+        self.assertContains(report, "Food")
+        self.assertNotContains(report, "Transport")
+        self.assertContains(report, "above NPR 1000.00")
+
+        food_budget = Budget.objects.get(user=user, category=food, month=month)
+        edited = self.client.post(reverse("budget_edit", args=[food_budget.pk]), {
+            "category": food.pk, "month": month, "amount_limit": "9000.00",
+        })
+        self.assertRedirects(edited, reverse("budgets"))
+        self.assertTrue(self.client.post(reverse("budget_delete", args=[food_budget.pk])).status_code, 302)
+
+        threshold_export = self.client.get(reverse("export_excel"), {"expense_threshold": "1000.00"})
+        self.assertEqual(threshold_export.status_code, 200)
+        invalid_threshold = self.client.get(reverse("reports"), {"expense_threshold": "-1"})
+        self.assertContains(invalid_threshold, "greater than or equal to 0")

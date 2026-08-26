@@ -20,6 +20,10 @@
 
                             {{ field }}
 
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+
                             {% for error in field.errors %}
                                 <div class="text-danger">
                                     {{ error }}
@@ -42,7 +46,7 @@
     <div class="col-md-7">
         <h4>Budget progress</h4>
 
-        {% for budget, spent, percent in rows %}
+        {% for budget, spent, remaining, percent, status in rows %}
 
             <div class="card mb-3">
                 <div class="card-body">
@@ -59,13 +63,20 @@
                         </span>
                     </div>
 
+                    <small class="text-muted">Remaining: NPR {{ remaining }} · {{ status }}</small>
+
                     <div class="progress mt-2">
                         <div
-                            class="progress-bar {% if percent >= 100 %}bg-danger{% endif %}"
+                            class="progress-bar {% if status == 'Overspending' %}bg-danger{% elif status == 'Warning: 80% used' %}bg-warning{% endif %}"
                             style="width: {{ percent }}%;"
                         >
                             {{ percent }}%
                         </div>
+                    </div>
+
+                    <div class="mt-3 d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'budget_edit' budget.pk %}">Edit</a>
+                        <a class="btn btn-sm btn-outline-danger" href="{% url 'budget_delete' budget.pk %}">Delete</a>
                     </div>
 
                 </div>

@@ -9,6 +9,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from .forms import BudgetForm, CategoryForm, ExpenseForm, IncomeForm, RegisterForm, ReportFilterForm
 from .models import Budget, Category, Expense, Income
+from .budgeting import budget_progress, exceeded_categories, expense_budget_alert
 
 def register(request):
     if request.user.is_authenticated: return redirect("dashboard")
@@ -41,7 +42,13 @@ def form_page(request, form_class, template, title, instance=None):
         form.instance.user = request.user
     if request.method == "POST" and form.is_valid():
         item = form.save(commit=False)
-        item.save(); messages.success(request, f"{title} saved."); return redirect(template.split("_")[0] + "_list")
+        item.save()
+        messages.success(request, f"{title} saved.")
+        if isinstance(item, Expense):
+            alert = expense_budget_alert(item)
+            if alert:
+                messages.warning(request, alert)
+        return redirect(template.split("_")[0] + "_list")
     return render(request, "ledger/form.html", {"form": form, "title": title})
 
 @login_required
@@ -80,13 +87,24 @@ def budgets(request):
     form = BudgetForm(request.POST or None, user=request.user)
     form.instance.user = request.user
     if request.method == "POST" and form.is_valid(): form.save(); messages.success(request, "Budget saved."); return redirect("budgets")
-    rows=[]
-    for budget in Budget.objects.filter(user=request.user).select_related("category"):
-        spent = Expense.objects.filter(user=request.user, category=budget.category, date__year=budget.month.year, date__month=budget.month.month).aggregate(total=Sum("amount"))["total"] or Decimal("0")
-        rows.append((budget, spent, min(int((spent / budget.amount_limit) * 100), 100)))
+    rows = [(budget, *budget_progress(budget)) for budget in Budget.objects.filter(user=request.user).select_related("category")]
     return render(request, "ledger/budgets.html", {"form": form, "rows": rows})
 
-def report_data(user, start_date=None, end_date=None):
+@login_required
+def budget_edit(request, pk):
+    budget = get_object_or_404(Budget, pk=pk, user=request.user)
+    form = BudgetForm(request.POST or None, instance=budget, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Budget updated.")
+        return redirect("budgets")
+    return render(request, "ledger/form.html", {"form": form, "title": "Edit budget"})
+
+@login_required
+def budget_delete(request, pk):
+    return delete_item(request, Budget, pk, "budgets")
+
+def report_data(user, start_date=None, end_date=None, budget_month=None, expense_threshold=None):
     expenses = Expense.objects.filter(user=user)
     income = Income.objects.filter(user=user)
     if start_date:
@@ -95,9 +113,14 @@ def report_data(user, start_date=None, end_date=None):
     if end_date:
         expenses = expenses.filter(date__lte=end_date)
         income = income.filter(date__lte=end_date)
-    context = {"start_date": start_date, "end_date": end_date,
+    by_category = expenses.values("category__name").annotate(total=Sum("amount"))
+    if expense_threshold is not None:
+        by_category = by_category.filter(total__gt=expense_threshold)
+    monitoring_month = budget_month or date.today().replace(day=1)
+    context = {"start_date": start_date, "end_date": end_date, "expense_threshold": expense_threshold,
+               "budget_month": monitoring_month, "exceeded_categories": exceeded_categories(user, monitoring_month),
                "income_total": income.aggregate(total=Sum("amount"))["total"] or 0, "expense_total": expenses.aggregate(total=Sum("amount"))["total"] or 0,
-               "by_category": expenses.values("category__name").annotate(total=Sum("amount")).order_by("-total"),
+               "by_category": by_category.order_by("-total"),
                "monthly_income": income.annotate(month=TruncMonth("date")).values("month").annotate(total=Sum("amount")).order_by("month"),
                "monthly_expense": expenses.annotate(month=TruncMonth("date")).values("month").annotate(total=Sum("amount")).order_by("month")}
     context["balance"] = context["income_total"] - context["expense_total"]
@@ -114,7 +137,7 @@ def reports(request):
 def validated_report_data(request):
     filter_form = ReportFilterForm(request.GET)
     if not filter_form.is_valid():
-        return None, HttpResponse("Invalid report date range.", status=400)
+        return None, HttpResponse("Invalid report filter.", status=400)
     return report_data(request.user, **filter_form.cleaned_data), None
 
 @login_required
@@ -132,6 +155,11 @@ def export_excel(request):
     categories = workbook.create_sheet("Expenses by Category"); categories.append(["Category", "Amount (NPR)"])
     for cell in categories[1]: cell.font = Font(bold=True)
     for row in data["by_category"]: categories.append([row["category__name"], row["total"]])
+    exceeded = workbook.create_sheet("Exceeded Categories")
+    exceeded.append(["Category", "Budget (NPR)", "Spent (NPR)", "Exceeded by (NPR)"])
+    for cell in exceeded[1]: cell.font = Font(bold=True)
+    for row in data["exceeded_categories"]:
+        exceeded.append([row["category"], row["budget"], row["spent"], row["exceeded_by"]])
     transactions = workbook.create_sheet("Transactions"); transactions.append(["Type", "Date", "Category", "Amount", "Currency", "Description", "Payment method"])
     for cell in transactions[1]: cell.font = Font(bold=True)
     income_items = Income.objects.filter(user=request.user).select_related("category")
@@ -162,7 +190,7 @@ def export_pdf(request):
         return error_response
     response = HttpResponse(content_type="application/pdf"); response["Content-Disposition"] = 'attachment; filename="moneytrack-report.pdf"'
     styles = getSampleStyleSheet(); story = [Paragraph("MoneyTrack Financial Report", styles["Title"]), Spacer(1, 14)]
-    tables = [("Summary", [["Metric", "Amount (NPR)"], ["Total income", str(data["income_total"])], ["Total expenses", str(data["expense_total"])], ["Net balance", str(data["balance"])]]), ("Expenses by category", [["Expense category", "Amount (NPR)"]] + [[row["category__name"], str(row["total"])] for row in data["by_category"]])]
+    tables = [("Summary", [["Metric", "Amount (NPR)"], ["Total income", str(data["income_total"])], ["Total expenses", str(data["expense_total"])], ["Net balance", str(data["balance"])]]), ("Expenses by category", [["Expense category", "Amount (NPR)"]] + [[row["category__name"], str(row["total"])] for row in data["by_category"]]), ("Exceeded categories", [["Category", "Budget", "Spent", "Exceeded by"]] + [[row["category"], str(row["budget"]), str(row["spent"]), str(row["exceeded_by"])] for row in data["exceeded_categories"]])]
     for heading, rows in tables:
         story += [Paragraph(heading, styles["Heading2"]), Table(rows, colWidths=[260, 180], style=TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#0d6efd")), ("TEXTCOLOR", (0,0), (-1,0), colors.white), ("GRID", (0,0), (-1,-1), .4, colors.lightgrey), ("PADDING", (0,0), (-1,-1), 7)])), Spacer(1, 16)]
     SimpleDocTemplate(response, pagesize=A4, rightMargin=55, leftMargin=55, topMargin=55, bottomMargin=55).build(story)
